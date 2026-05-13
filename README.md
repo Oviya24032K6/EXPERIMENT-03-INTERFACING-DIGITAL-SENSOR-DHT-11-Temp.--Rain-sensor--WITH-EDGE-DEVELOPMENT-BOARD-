@@ -2,10 +2,10 @@
 
 ---
 
-### **NAME:**  
-### **DEPARTMENT:**  
-### **ROLL NO:**  
-### **DATE OF EXPERIMENT:**  
+### **NAME: OVIYA P**  
+### **DEPARTMENT: B.E.CSE-IOT**  
+### **ROLL NO:212223110033**  
+### **DATE OF EXPERIMENT:13/05/2026**  
 
 ---
 
@@ -70,23 +70,99 @@ Connect the Rain Sensor (LM393) D0 to any one GPIO.
 Experiment 3A
 ## PROGRAM (Python)
 ```
+import time
+import board
+import digitalio
+import busio
+import json
+import ssl
 
+from adafruit_mcp3xxx.mcp3008 import MCP3008
+from adafruit_mcp3xxx.analog_in import AnalogIn
+import adafruit_mcp3xxx.mcp3008 as MCP
 
- 
+from PIL import Image, ImageDraw, ImageFont
+import adafruit_ssd1306
 
+import paho.mqtt.client as mqtt
 
+# ---------------- MQTT CONFIG ----------------
+BROKER = "eb095bd9c95842ba8d846b05458b5d0f.s1.eu.hivemq.cloud"
+PORT = 8883
+USERNAME = "hivemq.webclient.1777442120440"
+PASSWORD = "2d@<hUTYgx51Lu#8>eGZ"
+TOPIC = "raspi/temperature"
 
- 
+# MQTT Setup
+client = mqtt.Client()
+client.username_pw_set(USERNAME, PASSWORD)
+client.tls_set(tls_version=ssl.PROTOCOL_TLS)
+
+client.connect(BROKER, PORT)
+client.loop_start()
+
+# ---------------- OLED SETUP ----------------
+RESET_PIN = digitalio.DigitalInOut(board.D4)
+i2c = board.I2C()
+oled = adafruit_ssd1306.SSD1306_I2C(128, 64, i2c, addr=0x3C, reset=RESET_PIN)
+
+# ---------------- SPI + MCP3008 ----------------
+spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
+cs = digitalio.DigitalInOut(board.D8)
+mcp = MCP.MCP3008(spi, cs)
+
+chan3 = AnalogIn(mcp, MCP.P3)
+
+# ---------------- FUNCTION ----------------
+def LM35():
+    try:
+        voltage = chan3.voltage
+        temp = (voltage * 330 / 1024) * 100
+
+        print("Temperature:", temp)
+
+        # OLED Display
+        oled.fill(0)
+        image = Image.new("1", (oled.width, oled.height))
+        draw = ImageDraw.Draw(image)
+
+        font = ImageFont.truetype(
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 16
+        )
+
+        draw.text((0, 10), "LM35 Sensor", font=font, fill=255)
+        draw.text((0, 30), f"Temp: {temp:.2f} C", font=font, fill=255)
+
+        oled.image(image)
+        oled.show()
+
+        # MQTT Publish
+        payload = json.dumps({"temperature": temp})
+        client.publish(TOPIC, payload)
+
+        print("Published to HiveMQ:", payload)
+
+    except Exception as e:
+        print("Error:", e)
+
+# ---------------- LOOP ----------------
+while True:
+    LM35()
+    time.sleep(20)
+
 ````
 
 ### OUPUT  
 
 
-# FIGURE -04 ADD TITILE HERE 
+# FIGURE -04 
+<img width="1599" height="899" alt="WhatsApp Image 2026-05-12 at 2 19 21 PM" src="https://github.com/user-attachments/assets/e6fa9768-73ae-498c-b5b6-a8ac0ef2b488" />
 
-#  FIGURE -05 ADD TITILE HERE 
+#  FIGURE -05 
+<img width="1600" height="765" alt="WhatsApp Image 2026-05-12 at 2 18 31 PM" src="https://github.com/user-attachments/assets/30b50c21-8020-405b-8fcc-8355acbd0798" />
 
-# FIGURE -06 ADD TITLE HERE 
+# FIGURE -06  
+<img width="643" height="391" alt="WhatsApp Image 2026-05-12 at 2 18 18 PM" src="https://github.com/user-attachments/assets/1434a1d9-df2d-4476-a1d8-e83bcdea491d" />
 
 Experiment 3B
 ## PROGRAM (Python)
